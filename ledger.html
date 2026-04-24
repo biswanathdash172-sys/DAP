@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DAP — Blockchain Ledger</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #060B18; --surface: #0C1222; --surface2: #101828;
+      --border: rgba(255,255,255,0.07); --primary: #3B82F6; --cyan: #06B6D4;
+      --green: #10B981; --red: #EF4444; --yellow: #F59E0B; --purple: #8B5CF6;
+      --text: #F1F5F9; --muted: rgba(241,245,249,0.45);
+      --sidebar-w: 240px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body { font-family: 'Manrope', sans-serif; background: var(--bg); color: var(--text); display: flex; overflow: hidden; }
+
+    /* SIDEBAR */
+    .sidebar { width: var(--sidebar-w); flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px 0; height: 100vh; position: sticky; top: 0; }
+    .sb-brand { display: flex; align-items: center; gap: 10px; padding: 0 20px 24px; border-bottom: 1px solid var(--border); margin-bottom: 16px; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.15rem; text-decoration: none; color: var(--text); }
+    .logo-box { width: 34px; height: 34px; background: linear-gradient(135deg, #2563EB, #06B6D4); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+    .sb-section { padding: 0 12px; margin-bottom: 6px; }
+    .sb-label { font-size: 0.67rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding: 8px 10px 4px; }
+    .sb-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; cursor: pointer; transition: all 0.18s; text-decoration: none; color: var(--muted); font-size: 0.85rem; font-weight: 600; margin-bottom: 2px; }
+    .sb-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+    .sb-item.active { background: rgba(59,130,246,0.12); color: var(--primary); border: 1px solid rgba(59,130,246,0.2); }
+    .sb-icon { width: 20px; text-align: center; font-size: 1rem; }
+    .sb-bottom { margin-top: auto; padding: 16px 12px; border-top: 1px solid var(--border); }
+    .status-pill { display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); border-radius: 10px; font-size: 0.78rem; color: var(--green); font-weight: 600; }
+    .blink { width: 7px; height: 7px; background: var(--green); border-radius: 50%; animation: blink 1.8s ease-in-out infinite; flex-shrink: 0; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+    /* MAIN */
+    .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+    .dash-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 28px; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 100; }
+    .dash-title h1 { font-family: 'Syne', sans-serif; font-size: 1.25rem; font-weight: 800; }
+    .dash-title span { font-size: 0.8rem; color: var(--muted); }
+    .btn { padding: 8px 16px; border-radius: 9px; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; text-decoration: none; border: none; display: inline-flex; align-items: center; gap: 7px; }
+    .btn-surface { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+    .btn-surface:hover { color: var(--text); }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: #2563EB; }
+
+    /* PAGE CONTENT */
+    .page-body { padding: 24px 28px; flex: 1; }
+
+    /* STATS ROW */
+    .ledger-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 22px; }
+    .ls-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+    .ls-val { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; line-height: 1; margin-bottom: 5px; }
+    .ls-lbl { font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+
+    /* TOOLBAR */
+    .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-input {
+      flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
+      padding: 10px 14px; color: var(--text); font-size: 0.85rem; font-family: 'Manrope', sans-serif; outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-input::placeholder { color: var(--muted); }
+    .search-input:focus { border-color: rgba(59,130,246,0.4); }
+    .filter-btn { padding: 9px 14px; border-radius: 9px; font-size: 0.8rem; font-weight: 700; cursor: pointer; border: 1px solid var(--border); background: var(--surface2); color: var(--muted); transition: all 0.15s; }
+    .filter-btn.active { background: rgba(59,130,246,0.1); color: var(--primary); border-color: rgba(59,130,246,0.3); }
+    .filter-btn:hover { color: var(--text); }
+
+    /* TABLE */
+    .table-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .table-header { padding: 16px 22px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .table-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; }
+    .table-count { font-size: 0.75rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+    .ledger-table { width: 100%; border-collapse: collapse; }
+    .ledger-table th { font-size: 0.67rem; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .ledger-table td { padding: 14px 16px; font-size: 0.82rem; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; }
+    .ledger-table tr:last-child td { border-bottom: none; }
+    .ledger-table tr:hover td { background: rgba(255,255,255,0.02); cursor: pointer; }
+    .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; color: var(--muted); }
+    .asset-name { font-weight: 600; font-size: 0.84rem; max-width: 220px; }
+    .lic-badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 0.69rem; font-weight: 800; }
+    .lic-exclusive { background: rgba(139,92,246,0.1); color: var(--purple); }
+    .lic-non-exclusive { background: rgba(59,130,246,0.1); color: var(--primary); }
+    .lic-territorial { background: rgba(6,182,212,0.1); color: var(--cyan); }
+    .lic-time-limited { background: rgba(245,158,11,0.1); color: var(--yellow); }
+    .st-active { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 0.69rem; font-weight: 800; background: rgba(16,185,129,0.1); color: var(--green); }
+    .st-expired { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 0.69px; font-weight: 800; background: rgba(239,68,68,0.1); color: var(--red); font-size: 0.69rem; }
+    .territory-badge { font-size: 0.75rem; color: var(--muted); font-weight: 600; text-transform: capitalize; }
+    .expand-row { background: rgba(59,130,246,0.03); }
+    .expand-row td { padding: 16px 22px; }
+    .detail-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+    .dg-item .dg-lbl { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .dg-item .dg-val { font-size: 0.82rem; font-weight: 600; }
+    .loading-msg { text-align: center; padding: 48px; color: var(--muted); }
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(59,130,246,0.15); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 900px) { .ledger-stats { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 700px) { .sidebar { display: none; } }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <a href="index.html" class="sb-brand">
+      <div class="logo-box">🛡️</div>
+      DAP
+    </a>
+    <div class="sb-section">
+      <div class="sb-label">Operations</div>
+      <a href="dashboard.html" class="sb-item"><span class="sb-icon">📊</span> Dashboard</a>
+      <a href="detection.html" class="sb-item"><span class="sb-icon">🔍</span> Detection Tool</a>
+      <a href="ledger.html" class="sb-item active"><span class="sb-icon">⛓️</span> Blockchain Ledger</a>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">System</div>
+      <a href="index.html" class="sb-item"><span class="sb-icon">🏠</span> Landing Page</a>
+      <a href="index.html#features" class="sb-item"><span class="sb-icon">⚙️</span> Features</a>
+    </div>
+    <div class="sb-bottom">
+      <div class="status-pill"><div class="blink"></div> Ledger Synced</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="dash-header">
+      <div class="dash-title">
+        <h1>Blockchain Ledger</h1>
+        <span>Immutable on-chain ownership and licensing registry</span>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-surface" onclick="loadLedger()">↺ Refresh</button>
+        <a href="detection.html" class="btn btn-primary">🔍 Detect Piracy</a>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <!-- Stats -->
+      <div class="ledger-stats" id="ledgerStats">
+        <div class="ls-card"><div class="ls-val" id="ls-total">—</div><div class="ls-lbl">Total Entries</div></div>
+        <div class="ls-card"><div class="ls-val" style="color:var(--green)" id="ls-active">—</div><div class="ls-lbl">Active Licenses</div></div>
+        <div class="ls-card"><div class="ls-val" style="color:var(--red)" id="ls-expired">—</div><div class="ls-lbl">Expired</div></div>
+        <div class="ls-card"><div class="ls-val" style="color:var(--cyan)" id="ls-global">—</div><div class="ls-lbl">Global Licenses</div></div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <input type="text" class="search-input" id="searchInput" placeholder="🔍  Search by asset name, license type, territory..." oninput="filterTable()" />
+        <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+        <button class="filter-btn" data-filter="active" onclick="setFilter('active')">Active</button>
+        <button class="filter-btn" data-filter="expired" onclick="setFilter('expired')">Expired</button>
+      </div>
+
+      <!-- Table -->
+      <div class="table-panel">
+        <div class="table-header">
+          <span class="table-title">⛓️ On-Chain Asset Registry</span>
+          <span class="table-count" id="tableCount">Loading...</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>TX Hash</th>
+                <th>Block</th>
+                <th>Asset Name</th>
+                <th>License</th>
+                <th>Territory</th>
+                <th>Valid Until</th>
+                <th>Watermark</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="ledgerBody">
+              <tr><td colspan="8" class="loading-msg"><span class="spinner"></span>Loading blockchain entries...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const API = '';
+    let allEntries = [];
+    let currentFilter = 'all';
+    let expandedRow = null;
+
+    function licClass(l) {
+      return { exclusive:'lic-exclusive','non-exclusive':'lic-non-exclusive','territorial':'lic-territorial','time-limited':'lic-time-limited' }[l] || 'lic-non-exclusive';
+    }
+    function truncate(str, n) { return str.length > n ? str.slice(0, n) + '…' : str; }
+    function truncateHash(h) { return h.slice(0, 10) + '…' + h.slice(-6); }
+
+    async function loadLedger() {
+      const tbody = document.getElementById('ledgerBody');
+      try {
+        const d = await fetch(`${API}/api/ledger`).then(r => r.json());
+        allEntries = d.entries;
+
+        const active = allEntries.filter(e => e.status === 'active').length;
+        const expired = allEntries.filter(e => e.status === 'expired').length;
+        const global = allEntries.filter(e => e.territory === 'global').length;
+        document.getElementById('ls-total').textContent = allEntries.length;
+        document.getElementById('ls-active').textContent = active;
+        document.getElementById('ls-expired').textContent = expired;
+        document.getElementById('ls-global').textContent = global;
+
+        renderTable(allEntries);
+      } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="8" class="loading-msg">⚠️ Could not connect to API at ${API}.<br>Start the Flask backend first, then refresh.</td></tr>`;
+      }
+    }
+
+    function renderTable(entries) {
+      const tbody = document.getElementById('ledgerBody');
+      document.getElementById('tableCount').textContent = `${entries.length} entries`;
+      if (entries.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="loading-msg">No entries match your filter.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = '';
+      entries.forEach((e, idx) => {
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.onclick = () => toggleExpand(e, idx);
+        tr.innerHTML = `
+          <td class="mono" title="${e.tx_hash}">${truncateHash(e.tx_hash)}</td>
+          <td class="mono">#${e.block_number?.toLocaleString()}</td>
+          <td><div class="asset-name" title="${e.asset_name}">${truncate(e.asset_name, 32)}</div><span class="mono" style="font-size:0.7rem">${e.asset_id}</span></td>
+          <td><span class="lic-badge ${licClass(e.license_type)}">${e.license_type}</span></td>
+          <td><span class="territory-badge">🌍 ${e.territory}</span></td>
+          <td style="font-size:0.78rem;color:${new Date(e.valid_until) < new Date() ? 'var(--red)' : 'var(--muted)'}">${e.valid_until}</td>
+          <td class="mono" style="font-size:0.75rem">${e.watermark_id}</td>
+          <td><span class="${e.status === 'active' ? 'st-active' : 'st-expired'}">${e.status === 'active' ? '● active' : '● expired'}</span></td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function toggleExpand(e, idx) {
+      const tbody = document.getElementById('ledgerBody');
+      const rows = tbody.querySelectorAll('tr:not(.expand-row)');
+      // Remove existing expand
+      const existing = tbody.querySelector('.expand-row');
+      if (existing) existing.remove();
+      if (expandedRow === idx) { expandedRow = null; return; }
+      expandedRow = idx;
+      const targetRow = rows[idx];
+      if (!targetRow) return;
+      const expandTr = document.createElement('tr');
+      expandTr.className = 'expand-row';
+      expandTr.innerHTML = `<td colspan="8">
+        <div class="detail-grid">
+          <div class="dg-item"><div class="dg-lbl">Full TX Hash</div><div class="dg-val mono" style="font-size:0.72rem;color:var(--cyan);word-break:break-all">${e.tx_hash}</div></div>
+          <div class="dg-item"><div class="dg-lbl">Owner Address</div><div class="dg-val mono" style="font-size:0.72rem">${e.owner}</div></div>
+          <div class="dg-item"><div class="dg-lbl">Valid From</div><div class="dg-val">${e.valid_from}</div></div>
+          <div class="dg-item"><div class="dg-lbl">Valid Until</div><div class="dg-val">${e.valid_until}</div></div>
+          <div class="dg-item"><div class="dg-lbl">Block Number</div><div class="dg-val mono">#${e.block_number?.toLocaleString()}</div></div>
+          <div class="dg-item"><div class="dg-lbl">Asset ID</div><div class="dg-val mono">${e.asset_id}</div></div>
+          <div class="dg-item"><div class="dg-lbl">Watermark ID</div><div class="dg-val mono">${e.watermark_id}</div></div>
+          <div class="dg-item"><div class="dg-lbl">Registered</div><div class="dg-val" style="font-size:0.78rem">${new Date(e.timestamp).toLocaleString()}</div></div>
+        </div>
+      </td>`;
+      targetRow.insertAdjacentElement('afterend', expandTr);
+    }
+
+    function filterTable() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      let filtered = currentFilter === 'all' ? allEntries : allEntries.filter(e => e.status === currentFilter);
+      if (query) {
+        filtered = filtered.filter(e =>
+          e.asset_name.toLowerCase().includes(query) ||
+          e.license_type.toLowerCase().includes(query) ||
+          e.territory.toLowerCase().includes(query) ||
+          e.asset_id.toLowerCase().includes(query)
+        );
+      }
+      expandedRow = null;
+      renderTable(filtered);
+    }
+
+    function setFilter(f) {
+      currentFilter = f;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+      filterTable();
+    }
+
+    loadLedger();
+  </script>
+</body>
+</html>

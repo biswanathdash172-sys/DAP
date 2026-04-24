@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DAP — Digital Asset Protection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #F6F8FF;
+      --bg-alt: #EEF2FF;
+      --dark: #070C1E;
+      --darker: #040810;
+      --primary: #2563EB;
+      --electric: #3B82F6;
+      --cyan: #06B6D4;
+      --green: #10B981;
+      --red: #EF4444;
+      --yellow: #F59E0B;
+      --text: #0F1829;
+      --muted: #64748B;
+      --white: #FFFFFF;
+      --border: rgba(37, 99, 235, 0.12);
+      --shadow-sm: 0 2px 12px rgba(37, 99, 235, 0.06);
+      --shadow: 0 8px 32px rgba(37, 99, 235, 0.12);
+      --radius: 18px;
+      --radius-sm: 12px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Manrope', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+    .container { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+
+    /* ─── SCROLL REVEAL ─── */
+    .reveal { opacity: 0; transform: translateY(36px); transition: opacity 0.75s ease, transform 0.75s ease; }
+    .reveal.vis { opacity: 1; transform: none; }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      padding: 14px 0;
+      backdrop-filter: blur(20px) saturate(180%);
+      background: rgba(246, 248, 255, 0.88);
+      border-bottom: 1px solid var(--border);
+      transition: box-shadow 0.3s;
+    }
+    nav.scrolled { box-shadow: var(--shadow); }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.25rem;
+      color: var(--text); text-decoration: none;
+    }
+    .logo-box {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--cyan) 100%);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; flex-shrink: 0;
+    }
+    .nav-links { display: flex; gap: 28px; list-style: none; }
+    .nav-links a {
+      text-decoration: none; color: var(--muted); font-weight: 600; font-size: 0.88rem;
+      transition: color 0.2s; position: relative; padding-bottom: 2px;
+    }
+    .nav-links a::after {
+      content: ''; position: absolute; bottom: 0; left: 0; width: 0; height: 2px;
+      background: var(--primary); border-radius: 99px; transition: width 0.25s;
+    }
+    .nav-links a:hover { color: var(--primary); }
+    .nav-links a:hover::after { width: 100%; }
+    .nav-cta { display: flex; gap: 10px; align-items: center; }
+    .btn {
+      padding: 10px 20px; border-radius: var(--radius-sm);
+      font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.88rem;
+      cursor: pointer; transition: all 0.2s; text-decoration: none; border: none;
+      display: inline-flex; align-items: center; gap: 8px; line-height: 1;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: #1D4ED8; transform: translateY(-2px); box-shadow: 0 8px 28px rgba(37,99,235,0.35); }
+    .btn-outline { background: transparent; color: var(--primary); border: 1.5px solid var(--border); }
+    .btn-outline:hover { border-color: var(--primary); background: rgba(37,99,235,0.04); }
+    .btn-lg { padding: 14px 30px; font-size: 0.97rem; border-radius: 14px; }
+
+    /* ─── HERO ─── */
+    .hero {
+      min-height: 100vh; display: flex; align-items: center;
+      padding: 130px 0 80px; position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -300px; right: -250px;
+      width: 750px; height: 750px;
+      background: radial-gradient(circle, rgba(37,99,235,0.07) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .hero::after {
+      content: ''; position: absolute; bottom: -200px; left: -150px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(6,182,212,0.05) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .hero-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 64px; align-items: center; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(37,99,235,0.07); border: 1px solid rgba(37,99,235,0.18);
+      color: var(--primary); padding: 6px 14px; border-radius: 999px;
+      font-size: 0.78rem; font-weight: 700; margin-bottom: 22px; letter-spacing: 0.02em;
+    }
+    .pulse-dot {
+      width: 7px; height: 7px; background: var(--cyan); border-radius: 50%;
+      animation: pdot 2s ease-in-out infinite;
+    }
+    @keyframes pdot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.6)} }
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(3rem, 5.5vw, 4.6rem);
+      font-weight: 800; line-height: 1.08; margin-bottom: 22px;
+    }
+    .h1-gradient {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--cyan) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-p { font-size: 1.08rem; color: var(--muted); line-height: 1.75; margin-bottom: 36px; max-width: 470px; }
+    .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 52px; }
+    .hero-stats-row { display: flex; gap: 36px; padding-top: 32px; border-top: 1px solid var(--border); }
+    .hs { }
+    .hs .num { font-family: 'Syne', sans-serif; font-size: 1.7rem; font-weight: 800; display: block; }
+    .hs .lbl { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+
+    /* ─── HERO VISUAL ─── */
+    .hero-vis { position: relative; height: 500px; }
+    .vis-center {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    }
+    .vis-ring {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      border-radius: 50%; border: 1.5px solid;
+      animation: spin linear infinite;
+    }
+    .vis-ring:nth-child(1) { width: 200px;height:200px;border-color:rgba(37,99,235,0.22);animation-duration:14s; }
+    .vis-ring:nth-child(2) { width: 290px;height:290px;border-color:rgba(6,182,212,0.15);animation-duration:20s;animation-direction:reverse; }
+    .vis-ring:nth-child(3) { width: 380px;height:380px;border-color:rgba(37,99,235,0.08);animation-duration:30s; }
+    @keyframes spin { from{transform:translate(-50%,-50%)rotate(0)} to{transform:translate(-50%,-50%)rotate(360deg)} }
+    .vis-core {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      width: 88px; height: 88px;
+      background: linear-gradient(135deg, var(--primary), var(--cyan));
+      border-radius: 24px; display: flex; align-items: center; justify-content: center;
+      font-size: 2.2rem; color: white;
+      box-shadow: 0 0 0 12px rgba(37,99,235,0.08), 0 0 60px rgba(37,99,235,0.3);
+      animation: float-core 4.5s ease-in-out infinite;
+    }
+    @keyframes float-core { 0%,100%{transform:translate(-50%,-50%)scale(1)} 50%{transform:translate(-50%,-57%)scale(1.04)} }
+    .fc {
+      position: absolute; background: white; border-radius: 14px;
+      padding: 14px 18px; box-shadow: var(--shadow); border: 1px solid var(--border);
+      animation: floatcard ease-in-out infinite;
+    }
+    .fc .fc-lbl { font-size: 0.68rem; color: var(--muted); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px; }
+    .fc .fc-val { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1rem; }
+    .fc .fc-badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.67rem; font-weight: 700; margin-top: 5px; }
+    .fc-1 { top: 6%; right: 4%; animation-duration: 3.6s; animation-delay: 0s; }
+    .fc-2 { bottom: 12%; right: 6%; animation-duration: 4.2s; animation-delay: 0.6s; }
+    .fc-3 { top: 28%; left: -2%; animation-duration: 3.9s; animation-delay: 0.3s; }
+    .fc-4 { bottom: 30%; left: 3%; animation-duration: 4.5s; animation-delay: 0.9s; }
+    @keyframes floatcard { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+    .badge-red { background: rgba(239,68,68,0.1); color: #EF4444; }
+    .badge-green { background: rgba(16,185,129,0.1); color: #10B981; }
+    .badge-yellow { background: rgba(245,158,11,0.1); color: #F59E0B; }
+
+    /* ─── STATS BAND ─── */
+    .stats-band { background: var(--dark); padding: 52px 0; }
+    .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); }
+    .s-item { text-align: center; padding: 20px; border-right: 1px solid rgba(255,255,255,0.06); }
+    .s-item:last-child { border-right: none; }
+    .s-num { font-family: 'Syne', sans-serif; font-size: 2.5rem; font-weight: 800; color: white; display: block; line-height: 1; margin-bottom: 8px; }
+    .s-num em { color: var(--cyan); font-style: normal; }
+    .s-lbl { font-size: 0.8rem; color: rgba(255,255,255,0.45); font-weight: 600; }
+
+    /* ─── SECTIONS COMMONS ─── */
+    .section { padding: 100px 0; }
+    .section-alt { background: var(--bg-alt); }
+    .section-dark { background: var(--dark); color: white; }
+    .s-header { text-align: center; margin-bottom: 64px; }
+    .s-tag {
+      display: inline-block; background: rgba(37,99,235,0.08); color: var(--primary);
+      padding: 4px 14px; border-radius: 999px; font-size: 0.74rem;
+      font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px;
+    }
+    .s-tag-dark { background: rgba(6,182,212,0.15); color: var(--cyan); }
+    h2.s-title {
+      font-family: 'Syne', sans-serif; font-size: clamp(2rem, 3.5vw, 2.9rem);
+      font-weight: 800; line-height: 1.15; max-width: 580px; margin: 0 auto 14px;
+    }
+    .s-sub { font-size: 0.97rem; color: var(--muted); max-width: 480px; margin: 0 auto; line-height: 1.72; }
+
+    /* ─── FEATURES GRID ─── */
+    .feat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 22px; }
+    .feat-card {
+      background: white; border-radius: var(--radius); padding: 30px;
+      border: 1px solid var(--border); transition: all 0.3s; position: relative; overflow: hidden; cursor: default;
+    }
+    .feat-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2.5px;
+      background: linear-gradient(90deg, var(--primary), var(--cyan)); opacity: 0; transition: opacity 0.3s;
+    }
+    .feat-card:hover { transform: translateY(-5px); box-shadow: var(--shadow); border-color: rgba(37,99,235,0.25); }
+    .feat-card:hover::before { opacity: 1; }
+    .feat-icon {
+      width: 50px; height: 50px; background: rgba(37,99,235,0.07); border-radius: 13px;
+      display: flex; align-items: center; justify-content: center; font-size: 1.25rem; margin-bottom: 18px;
+    }
+    .feat-card h3 { font-family: 'Syne', sans-serif; font-size: 1.05rem; font-weight: 700; margin-bottom: 9px; }
+    .feat-card p { font-size: 0.84rem; color: var(--muted); line-height: 1.66; margin-bottom: 16px; }
+    .feat-stat { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--primary); }
+    .feat-stat-lbl { font-size: 0.73rem; color: var(--muted); margin-left: 4px; font-weight: 600; }
+
+    /* ─── WORKFLOW ─── */
+    .workflow-list { max-width: 780px; margin: 0 auto; }
+    .wf-step {
+      display: grid; grid-template-columns: 76px 1fr;
+      gap: 28px; padding: 30px 0; border-bottom: 1px solid var(--border);
+      align-items: start;
+    }
+    .wf-step:last-child { border-bottom: none; }
+    .wf-num {
+      font-family: 'Syne', sans-serif; font-size: 2.8rem; font-weight: 800;
+      color: transparent; -webkit-text-stroke: 2px rgba(37,99,235,0.2); line-height: 1;
+    }
+    .wf-content h3 { font-family: 'Syne', sans-serif; font-size: 1.08rem; font-weight: 700; margin-bottom: 6px; }
+    .wf-content p { font-size: 0.85rem; color: var(--muted); line-height: 1.65; margin-bottom: 12px; }
+    .wf-status {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; margin-bottom: 10px;
+    }
+    .wf-status.completed { background: rgba(16,185,129,0.1); color: #10B981; }
+    .wf-status.active { background: rgba(37,99,235,0.1); color: var(--primary); }
+    .wf-status.pending { background: rgba(107,114,128,0.1); color: var(--muted); }
+    .wf-bar { height: 4px; background: rgba(37,99,235,0.1); border-radius: 99px; overflow: hidden; }
+    .wf-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--cyan)); border-radius: 99px; transition: width 1.2s ease; }
+
+    /* ─── ADVANCED FEATURES ─── */
+    .adv-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+    .adv-card {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: var(--radius); padding: 26px; transition: all 0.3s;
+    }
+    .adv-card:hover { background: rgba(255,255,255,0.07); border-color: rgba(6,182,212,0.25); }
+    .adv-icon { font-size: 1.5rem; margin-bottom: 14px; display: block; }
+    .adv-card h3 { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; color: white; }
+    .adv-card p { font-size: 0.82rem; color: rgba(255,255,255,0.45); line-height: 1.6; }
+
+    /* ─── CTA ─── */
+    .cta-box {
+      max-width: 700px; margin: 0 auto; text-align: center;
+      padding: 80px 40px;
+    }
+    .cta-box h2 { font-family: 'Syne', sans-serif; font-size: clamp(2rem,4vw,3rem); font-weight: 800; color: white; margin-bottom: 14px; }
+    .cta-box p { color: rgba(255,255,255,0.5); font-size: 1rem; margin-bottom: 36px; }
+    .cta-btns { display: flex; gap: 14px; justify-content: center; }
+    .btn-white { background: white; color: var(--text); }
+    .btn-white:hover { background: rgba(255,255,255,0.92); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.2); }
+    .btn-ghost { background: transparent; color: white; border: 1.5px solid rgba(255,255,255,0.2); }
+    .btn-ghost:hover { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.05); }
+
+    /* ─── FOOTER ─── */
+    footer { background: #030710; padding: 44px 0; border-top: 1px solid rgba(255,255,255,0.04); }
+    .foot-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+    .foot-brand { font-family: 'Syne', sans-serif; font-weight: 700; color: white; font-size: 1.05rem; display: flex; align-items: center; gap: 10px; }
+    .foot-links { display: flex; gap: 22px; list-style: none; }
+    .foot-links a { color: rgba(255,255,255,0.35); text-decoration: none; font-size: 0.83rem; font-weight: 600; transition: color 0.2s; }
+    .foot-links a:hover { color: white; }
+    .foot-status { font-size: 0.8rem; color: rgba(255,255,255,0.35); }
+    .status-dot { color: var(--green); }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 0; }
+      .hero-vis { display: none; }
+      .feat-grid, .adv-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .feat-grid, .adv-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .nav-links { display: none; }
+      .hero-stats-row { gap: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ─── NAV ─── -->
+  <nav id="nav">
+    <div class="container nav-inner">
+      <a href="index.html" class="nav-logo">
+        <div class="logo-box">🛡️</div>
+        DAP
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#workflow">How It Works</a></li>
+        <li><a href="#advanced">Advanced</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="ledger.html">Ledger</a></li>
+      </ul>
+      <div class="nav-cta">
+        <a href="dashboard.html" class="btn btn-outline">Live Dashboard</a>
+        <a href="detection.html" class="btn btn-primary">🔍 Detect Piracy</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ─── HERO ─── -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-grid">
+        <div class="reveal">
+          <div class="hero-badge">
+            <span class="pulse-dot"></span>
+            System Online — 99.97% Uptime
+          </div>
+          <h1>
+            Shield Every<br>
+            <span class="h1-gradient">Digital Asset.</span><br>
+            Forever.
+          </h1>
+          <p class="hero-p">Real-time piracy detection, blockchain-backed ownership, and AI-powered takedown automation — protecting sports media at enterprise scale.</p>
+          <div class="hero-actions">
+            <a href="dashboard.html" class="btn btn-primary btn-lg">🚀 Open Dashboard</a>
+            <a href="detection.html" class="btn btn-outline btn-lg">Analyze a URL</a>
+          </div>
+          <div class="hero-stats-row">
+            <div class="hs"><span class="num" id="hs-a">1,247</span><span class="lbl">Assets Protected</span></div>
+            <div class="hs"><span class="num" id="hs-acc">91.4%</span><span class="lbl">AI Accuracy</span></div>
+            <div class="hs"><span class="num" id="hs-r">230ms</span><span class="lbl">Avg Response</span></div>
+          </div>
+        </div>
+        <div class="hero-vis reveal" style="transition-delay:0.25s">
+          <div class="vis-center">
+            <div class="vis-ring"></div>
+            <div class="vis-ring"></div>
+            <div class="vis-ring"></div>
+            <div class="vis-core">🛡️</div>
+          </div>
+          <div class="fc fc-1">
+            <div class="fc-lbl">Alert Detected</div>
+            <div class="fc-val">ALT-1042</div>
+            <div class="fc-badge badge-red">● CRITICAL</div>
+          </div>
+          <div class="fc fc-2">
+            <div class="fc-lbl">Watermark Match</div>
+            <div class="fc-val">WM-82943</div>
+            <div class="fc-badge badge-green">● VERIFIED</div>
+          </div>
+          <div class="fc fc-3">
+            <div class="fc-lbl">Assets On-Chain</div>
+            <div class="fc-val">1,247</div>
+            <div class="fc-badge badge-green">● ACTIVE</div>
+          </div>
+          <div class="fc fc-4">
+            <div class="fc-lbl">AI Confidence</div>
+            <div class="fc-val">91.4%</div>
+            <div class="fc-badge badge-yellow">● ANALYZING</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── STATS BAND ─── -->
+  <div class="stats-band">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="s-item"><span class="s-num" id="sb-a">1,247</span><span class="s-lbl">Protected Assets</span></div>
+        <div class="s-item"><span class="s-num" id="sb-b">847</span><span class="s-lbl">Infringements Blocked</span></div>
+        <div class="s-item"><span class="s-num"><span id="sb-acc">91.4</span><em>%</em></span><span class="s-lbl">Detection Accuracy</span></div>
+        <div class="s-item"><span class="s-num"><span id="sb-r">230</span><em>ms</em></span><span class="s-lbl">Avg Response Time</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── FEATURES ─── -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="s-header reveal">
+        <div class="s-tag">Core Features</div>
+        <h2 class="s-title">Enterprise protection, fully automated</h2>
+        <p class="s-sub">From watermarking to takedowns — every layer of defense in one unified system.</p>
+      </div>
+      <div class="feat-grid" id="featGrid"></div>
+    </div>
+  </section>
+
+  <!-- ─── WORKFLOW ─── -->
+  <section class="section section-alt" id="workflow">
+    <div class="container">
+      <div class="s-header reveal">
+        <div class="s-tag">Workflow</div>
+        <h2 class="s-title">Seven phases. Zero gaps.</h2>
+        <p class="s-sub">A systematic approach to digital rights protection — from discovery to enforcement.</p>
+      </div>
+      <div class="workflow-list" id="wfList"></div>
+    </div>
+  </section>
+
+  <!-- ─── ADVANCED ─── -->
+  <section class="section section-dark" id="advanced">
+    <div class="container">
+      <div class="s-header reveal">
+        <div class="s-tag s-tag-dark">Advanced Capabilities</div>
+        <h2 class="s-title" style="color:white">Built for the enterprise layer</h2>
+        <p class="s-sub" style="color:rgba(255,255,255,0.45)">CDN integrations, DRM encryption, geo-fencing, and API-first design — power under the hood.</p>
+      </div>
+      <div class="adv-grid" id="advGrid"></div>
+    </div>
+  </section>
+
+  <!-- ─── CTA ─── -->
+  <section class="section section-dark" style="padding: 0 0 100px;">
+    <div class="container reveal">
+      <div class="cta-box">
+        <h2>See piracy detection live.</h2>
+        <p>Paste any URL — our AI analyzes it in under 500ms and tells you if it's infringing.</p>
+        <div class="cta-btns">
+          <a href="detection.html" class="btn btn-white btn-lg">🔍 Try Detection Tool</a>
+          <a href="ledger.html" class="btn btn-ghost btn-lg">View Blockchain Ledger</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FOOTER ─── -->
+  <footer>
+    <div class="container foot-inner">
+      <div class="foot-brand">
+        <div class="logo-box">🛡️</div>
+        DAP — Digital Asset Protection
+      </div>
+      <ul class="foot-links">
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="detection.html">Detection</a></li>
+        <li><a href="ledger.html">Ledger</a></li>
+        <li><a href="index.html#features">Features</a></li>
+      </ul>
+      <div class="foot-status"><span class="status-dot">●</span> All Systems Operational</div>
+    </div>
+  </footer>
+
+  <script>
+    const API = '';
+
+    // Scroll Reveal
+    const revealObs = new IntersectionObserver((entries) => {
+      entries.forEach((e, i) => {
+        if (e.isIntersecting) {
+          setTimeout(() => e.target.classList.add('vis'), i * 80);
+          revealObs.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+    // Nav scroll shadow
+    window.addEventListener('scroll', () => {
+      document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 20);
+    });
+
+    // Fetch Stats
+    fetch(`${API}/api/stats`)
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('hs-a').textContent = d.total_assets?.toLocaleString();
+        document.getElementById('hs-acc').textContent = d.detection_accuracy + '%';
+        document.getElementById('hs-r').textContent = d.avg_response_time_ms + 'ms';
+        document.getElementById('sb-a').textContent = d.total_assets?.toLocaleString();
+        document.getElementById('sb-b').textContent = d.infringements_blocked?.toLocaleString();
+        document.getElementById('sb-acc').textContent = d.detection_accuracy;
+        document.getElementById('sb-r').textContent = d.avg_response_time_ms;
+      }).catch(() => {});
+
+    // Features
+    const iconMap = {'fa-shield-halved':'🛡️','fa-fingerprint':'🔏','fa-brain':'🧠','fa-cube':'⛓️','fa-bolt':'⚡','fa-scale-balanced':'⚖️'};
+    const advIcons = {'fa-network-wired':'🌐','fa-lock':'🔐','fa-chart-line':'📈','fa-users-gear':'👥','fa-globe':'🗺️','fa-code-branch':'🔀'};
+    fetch(`${API}/api/features`)
+      .then(r => r.json())
+      .then(d => {
+        const g = document.getElementById('featGrid');
+        d.core.forEach((f, i) => {
+          const el = document.createElement('div');
+          el.className = 'feat-card reveal';
+          el.style.transitionDelay = (i * 0.08) + 's';
+          el.innerHTML = `<div class="feat-icon">${iconMap[f.icon]||'🔒'}</div><h3>${f.title}</h3><p>${f.desc}</p><span class="feat-stat">${f.stat}</span><span class="feat-stat-lbl">${f.stat_label}</span>`;
+          g.appendChild(el); revealObs.observe(el);
+        });
+        const ag = document.getElementById('advGrid');
+        d.advanced.forEach((f, i) => {
+          const el = document.createElement('div');
+          el.className = 'adv-card reveal';
+          el.style.transitionDelay = (i * 0.08) + 's';
+          el.innerHTML = `<span class="adv-icon">${advIcons[f.icon]||'⚙️'}</span><h3>${f.title}</h3><p>${f.desc}</p>`;
+          ag.appendChild(el); revealObs.observe(el);
+        });
+      }).catch(() => {
+        const fallback = [
+          {i:'🛡️',t:'Real-Time Monitoring',d:'Continuously scan 50+ streaming platforms and social networks.',s:'50+',l:'Platforms'},
+          {i:'🔏',t:'Invisible Watermarking',d:'Embed perceptual watermarks without quality degradation.',s:'3,421',l:'Watermarks'},
+          {i:'🧠',t:'AI Detection',d:'ML on perceptual hashing, scene analysis, audio fingerprinting.',s:'91.4%',l:'Accuracy'},
+          {i:'⛓️',t:'Blockchain Ledger',d:'Immutable on-chain ownership and licensing records.',s:'1,247',l:'On-chain'},
+          {i:'⚡',t:'Instant Takedown',d:'Automated takedown dispatch within 230ms of confirmation.',s:'230ms',l:'Response'},
+          {i:'⚖️',t:'Compliance Engine',d:'Built-in DMCA and EU Digital Single Market compliance.',s:'96.8%',l:'Score'},
+        ];
+        const g = document.getElementById('featGrid');
+        fallback.forEach((f, i) => {
+          const el = document.createElement('div');
+          el.className = 'feat-card reveal';
+          el.style.transitionDelay = (i * 0.08) + 's';
+          el.innerHTML = `<div class="feat-icon">${f.i}</div><h3>${f.t}</h3><p>${f.d}</p><span class="feat-stat">${f.s}</span><span class="feat-stat-lbl">${f.l}</span>`;
+          g.appendChild(el); revealObs.observe(el);
+        });
+      });
+
+    // Workflow
+    fetch(`${API}/api/workflow`)
+      .then(r => r.json())
+      .then(d => {
+        const list = document.getElementById('wfList');
+        d.phases.forEach((p, i) => {
+          const el = document.createElement('div');
+          el.className = 'wf-step reveal';
+          el.style.transitionDelay = (i * 0.07) + 's';
+          const statusIcon = p.status === 'completed' ? '✓' : p.status === 'active' ? '⦿' : '○';
+          el.innerHTML = `
+            <div class="wf-num">0${p.step}</div>
+            <div class="wf-content">
+              <span class="wf-status ${p.status}">${statusIcon} ${p.status}</span>
+              <h3>${p.name}</h3>
+              <p>${p.desc}</p>
+              <div class="wf-bar"><div class="wf-fill" style="width:${p.progress}%"></div></div>
+            </div>`;
+          list.appendChild(el); revealObs.observe(el);
+        });
+      }).catch(() => {});
+  </script>
+</body>
+</html>

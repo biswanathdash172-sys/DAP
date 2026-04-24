@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DAP — Live Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #060B18; --surface: #0C1222; --surface2: #101828;
+      --border: rgba(255,255,255,0.06); --border-active: rgba(37,99,235,0.4);
+      --primary: #3B82F6; --cyan: #06B6D4; --green: #10B981;
+      --red: #EF4444; --yellow: #F59E0B; --purple: #8B5CF6;
+      --text: #F1F5F9; --muted: rgba(241,245,249,0.45);
+      --sidebar-w: 240px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body { font-family: 'Manrope', sans-serif; background: var(--bg); color: var(--text); display: flex; overflow: hidden; }
+
+    /* ─── SIDEBAR ─── */
+    .sidebar {
+      width: var(--sidebar-w); flex-shrink: 0; background: var(--surface);
+      border-right: 1px solid var(--border); display: flex; flex-direction: column;
+      padding: 24px 0; height: 100vh; position: sticky; top: 0;
+    }
+    .sb-brand {
+      display: flex; align-items: center; gap: 10px; padding: 0 20px 24px;
+      border-bottom: 1px solid var(--border); margin-bottom: 16px;
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.15rem;
+      text-decoration: none; color: var(--text);
+    }
+    .logo-box {
+      width: 34px; height: 34px; background: linear-gradient(135deg, #2563EB, #06B6D4);
+      border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0;
+    }
+    .sb-section { padding: 0 12px; margin-bottom: 6px; }
+    .sb-label { font-size: 0.67rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding: 8px 10px 4px; }
+    .sb-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+      border-radius: 10px; cursor: pointer; transition: all 0.18s; text-decoration: none;
+      color: var(--muted); font-size: 0.85rem; font-weight: 600; margin-bottom: 2px;
+    }
+    .sb-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+    .sb-item.active { background: rgba(59,130,246,0.12); color: var(--primary); border: 1px solid rgba(59,130,246,0.2); }
+    .sb-item .sb-icon { width: 20px; text-align: center; font-size: 1rem; }
+    .sb-bottom { margin-top: auto; padding: 16px 12px; border-top: 1px solid var(--border); }
+    .status-pill {
+      display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+      background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2);
+      border-radius: 10px; font-size: 0.78rem; color: var(--green); font-weight: 600;
+    }
+    .blink { width: 7px; height: 7px; background: var(--green); border-radius: 50%; animation: blink 1.8s ease-in-out infinite; flex-shrink: 0; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+    /* ─── MAIN ─── */
+    .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+    /* ─── HEADER ─── */
+    .dash-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 28px; border-bottom: 1px solid var(--border);
+      background: var(--surface); position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(16px);
+    }
+    .dash-title h1 { font-family: 'Syne', sans-serif; font-size: 1.25rem; font-weight: 800; }
+    .dash-title span { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
+    .dash-actions { display: flex; gap: 10px; align-items: center; }
+    .btn {
+      padding: 8px 16px; border-radius: 9px; font-family: 'Manrope', sans-serif;
+      font-weight: 700; font-size: 0.82rem; cursor: pointer; transition: all 0.2s;
+      text-decoration: none; border: none; display: inline-flex; align-items: center; gap: 7px;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: #2563EB; }
+    .btn-surface { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+    .btn-surface:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+    .last-updated { font-size: 0.75rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+    /* ─── CONTENT ─── */
+    .dash-body { padding: 28px; flex: 1; }
+
+    /* ─── STATS CARDS ─── */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      padding: 22px 24px; transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: var(--border-active); }
+    .sc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+    .sc-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+    }
+    .sc-trend { font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
+    .trend-up { background: rgba(16,185,129,0.1); color: var(--green); }
+    .trend-warn { background: rgba(245,158,11,0.1); color: var(--yellow); }
+    .trend-bad { background: rgba(239,68,68,0.1); color: var(--red); }
+    .sc-val { font-family: 'Syne', sans-serif; font-size: 1.9rem; font-weight: 800; line-height: 1; margin-bottom: 5px; }
+    .sc-lbl { font-size: 0.78rem; color: var(--muted); font-weight: 600; }
+
+    /* ─── TWO-COL ─── */
+    .two-col { display: grid; grid-template-columns: 1fr 320px; gap: 20px; }
+
+    /* ─── ALERTS TABLE ─── */
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .panel-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .panel-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.97rem; }
+    .panel-badge { font-size: 0.72rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: rgba(239,68,68,0.1); color: var(--red); }
+    .alerts-table { width: 100%; border-collapse: collapse; }
+    .alerts-table th {
+      font-size: 0.69rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--muted); padding: 10px 16px; text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .alerts-table td { padding: 13px 16px; font-size: 0.82rem; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; }
+    .alerts-table tr:last-child td { border-bottom: none; }
+    .alerts-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .sev-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 800;
+    }
+    .sev-critical { background: rgba(239,68,68,0.12); color: #EF4444; }
+    .sev-high { background: rgba(245,158,11,0.12); color: #F59E0B; }
+    .sev-medium { background: rgba(59,130,246,0.12); color: #3B82F6; }
+    .sev-low { background: rgba(16,185,129,0.12); color: #10B981; }
+    .status-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 0.68rem; font-weight: 700;
+    }
+    .st-active { background: rgba(239,68,68,0.1); color: #EF4444; }
+    .st-investigating { background: rgba(245,158,11,0.1); color: #F59E0B; }
+    .st-escalated { background: rgba(139,92,246,0.1); color: #8B5CF6; }
+    .st-resolved { background: rgba(16,185,129,0.1); color: #10B981; }
+    .conf-bar { height: 4px; width: 60px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 6px; }
+    .conf-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--cyan)); border-radius: 99px; }
+    .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--muted); }
+
+    /* ─── SIDE PANELS ─── */
+    .side-stack { display: flex; flex-direction: column; gap: 16px; }
+    .mini-stat { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .mini-stat:last-child { border-bottom: none; }
+    .mini-stat .ms-lbl { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+    .mini-stat .ms-val { font-family: 'Syne', sans-serif; font-size: 0.97rem; font-weight: 800; }
+    .platform-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .platform-row:last-child { margin-bottom: 0; }
+    .pl-name { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+    .pl-bar-wrap { flex: 1; margin: 0 12px; height: 5px; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+    .pl-bar { height: 100%; background: linear-gradient(90deg, var(--primary), var(--cyan)); border-radius: 99px; }
+    .pl-count { font-size: 0.78rem; font-weight: 700; min-width: 24px; text-align: right; }
+
+    /* ─── LOADING ─── */
+    .loading-row td { color: var(--muted); text-align: center; padding: 40px; font-size: 0.85rem; }
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(59,130,246,0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 1100px) { .two-col { grid-template-columns: 1fr; } }
+    @media (max-width: 700px) { .stats-row { grid-template-columns: 1fr 1fr; } .sidebar { display: none; } }
+  </style>
+</head>
+<body>
+
+  <!-- ─── SIDEBAR ─── -->
+  <aside class="sidebar">
+    <a href="index.html" class="sb-brand">
+      <div class="logo-box">🛡️</div>
+      DAP
+    </a>
+    <div class="sb-section">
+      <div class="sb-label">Operations</div>
+      <a href="dashboard.html" class="sb-item active"><span class="sb-icon">📊</span> Dashboard</a>
+      <a href="detection.html" class="sb-item"><span class="sb-icon">🔍</span> Detection Tool</a>
+      <a href="ledger.html" class="sb-item"><span class="sb-icon">⛓️</span> Blockchain Ledger</a>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">System</div>
+      <a href="index.html" class="sb-item"><span class="sb-icon">🏠</span> Landing Page</a>
+      <a href="index.html#features" class="sb-item"><span class="sb-icon">⚙️</span> Features</a>
+      <a href="index.html#workflow" class="sb-item"><span class="sb-icon">📋</span> Workflow</a>
+    </div>
+    <div class="sb-bottom">
+      <div class="status-pill"><div class="blink"></div> All Systems Operational</div>
+    </div>
+  </aside>
+
+  <!-- ─── MAIN ─── -->
+  <main class="main">
+    <div class="dash-header">
+      <div class="dash-title">
+        <h1>Live Dashboard</h1>
+        <span>Digital Asset Protection Operations Center</span>
+      </div>
+      <div class="dash-actions">
+        <span class="last-updated" id="lastUpdated">Fetching data...</span>
+        <button class="btn btn-surface" onclick="loadAll()">↺ Refresh</button>
+        <a href="detection.html" class="btn btn-primary">🔍 Detect Piracy</a>
+      </div>
+    </div>
+
+    <div class="dash-body">
+      <!-- Stats Row -->
+      <div class="stats-row" id="statsRow">
+        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:rgba(59,130,246,0.1)">🛡️</div><span class="sc-trend trend-up">↑ Live</span></div><div class="sc-val" id="sc-total">—</div><div class="sc-lbl">Total Assets Protected</div></div>
+        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:rgba(239,68,68,0.1)">🚨</div><span class="sc-trend trend-bad" id="sc-alert-trend">—</span></div><div class="sc-val" id="sc-alerts">—</div><div class="sc-lbl">Active Alerts</div></div>
+        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:rgba(16,185,129,0.1)">🧠</div><span class="sc-trend trend-up" id="sc-acc-trend">—</span></div><div class="sc-val" id="sc-acc">—</div><div class="sc-lbl">Detection Accuracy</div></div>
+        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:rgba(6,182,212,0.1)">🔏</div><span class="sc-trend trend-up">Active</span></div><div class="sc-val" id="sc-wm">—</div><div class="sc-lbl">Watermarks Embedded</div></div>
+        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:rgba(245,158,11,0.1)">⚡</div><span class="sc-trend trend-up">↑ Fast</span></div><div class="sc-val" id="sc-resp">—</div><div class="sc-lbl">Avg Response Time</div></div>
+        <div class="stat-card"><div class="sc-top"><div class="sc-icon" style="background:rgba(139,92,246,0.1)">⚖️</div><span class="sc-trend trend-up" id="sc-comp-trend">—</span></div><div class="sc-val" id="sc-comp">—</div><div class="sc-lbl">Compliance Score</div></div>
+      </div>
+
+      <!-- Two Column -->
+      <div class="two-col">
+        <!-- Alerts Table -->
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">🚨 Recent Alerts</span>
+            <span class="panel-badge" id="alertCount">Loading...</span>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="alerts-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Platform</th>
+                  <th>Severity</th>
+                  <th>Type</th>
+                  <th>Confidence</th>
+                  <th>Status</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody id="alertsBody">
+                <tr class="loading-row"><td colspan="7"><span class="spinner"></span>Loading alerts...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Side Panels -->
+        <div class="side-stack">
+          <!-- System Health -->
+          <div class="panel">
+            <div class="panel-header"><span class="panel-title">📈 System Health</span></div>
+            <div style="padding: 16px 20px;">
+              <div class="mini-stat"><span class="ms-lbl">Protected Streams</span><span class="ms-val" id="ms-streams">—</span></div>
+              <div class="mini-stat"><span class="ms-lbl">Ledger Entries</span><span class="ms-val" id="ms-ledger">—</span></div>
+              <div class="mini-stat"><span class="ms-lbl">Takedown Requests</span><span class="ms-val" id="ms-takedown">—</span></div>
+              <div class="mini-stat"><span class="ms-lbl">Assets (24h)</span><span class="ms-val" id="ms-24h">—</span></div>
+              <div class="mini-stat"><span class="ms-lbl">Uptime</span><span class="ms-val" style="color:var(--green)" id="ms-uptime">—</span></div>
+            </div>
+          </div>
+
+          <!-- Platform Breakdown -->
+          <div class="panel">
+            <div class="panel-header"><span class="panel-title">📡 Platform Distribution</span></div>
+            <div style="padding: 16px 20px;" id="platformBreakdown">
+              <div style="color:var(--muted);font-size:0.82rem">Loading...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const API = '';
+
+    function timeAgo(isoStr) {
+      const diff = (Date.now() - new Date(isoStr)) / 1000;
+      if (diff < 60) return `${Math.floor(diff)}s ago`;
+      if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+      return `${Math.floor(diff/86400)}d ago`;
+    }
+
+    function sevClass(s) {
+      return {critical:'sev-critical',high:'sev-high',medium:'sev-medium',low:'sev-low'}[s] || 'sev-low';
+    }
+    function stClass(s) {
+      return {active:'st-active',investigating:'st-investigating',escalated:'st-escalated',resolved:'st-resolved'}[s] || 'st-resolved';
+    }
+
+    async function loadStats() {
+      try {
+        const d = await fetch(`${API}/api/stats`).then(r => r.json());
+        document.getElementById('sc-total').textContent = d.total_assets?.toLocaleString();
+        document.getElementById('sc-alerts').textContent = d.active_alerts;
+        document.getElementById('sc-acc').textContent = d.detection_accuracy + '%';
+        document.getElementById('sc-wm').textContent = d.watermarks_embedded?.toLocaleString();
+        document.getElementById('sc-resp').textContent = d.avg_response_time_ms + 'ms';
+        document.getElementById('sc-comp').textContent = d.compliance_score + '%';
+        document.getElementById('sc-alert-trend').textContent = d.active_alerts + ' active';
+        document.getElementById('sc-acc-trend').textContent = '↑ ' + d.detection_accuracy + '%';
+        document.getElementById('sc-comp-trend').textContent = d.compliance_score + '%';
+        document.getElementById('ms-streams').textContent = d.protected_streams;
+        document.getElementById('ms-ledger').textContent = d.ledger_entries?.toLocaleString();
+        document.getElementById('ms-takedown').textContent = d.takedown_requests;
+        document.getElementById('ms-24h').textContent = d.assets_monitored_24h?.toLocaleString();
+        document.getElementById('ms-uptime').textContent = d.uptime + '%';
+      } catch(e) { console.warn('Stats API unavailable'); }
+    }
+
+    async function loadAlerts() {
+      const tbody = document.getElementById('alertsBody');
+      try {
+        const d = await fetch(`${API}/api/alerts`).then(r => r.json());
+        document.getElementById('alertCount').textContent = d.total + ' alerts';
+        tbody.innerHTML = '';
+        d.alerts.slice(0, 15).forEach(a => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="mono">${a.id}</td>
+            <td>${a.platform}</td>
+            <td><span class="sev-badge ${sevClass(a.severity)}">${a.severity.toUpperCase()}</span></td>
+            <td style="font-size:0.78rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.content_type}</td>
+            <td>
+              <span style="font-size:0.78rem;font-weight:700;">${Math.round(a.confidence*100)}%</span>
+              <span class="conf-bar"><span class="conf-fill" style="width:${a.confidence*100}%"></span></span>
+            </td>
+            <td><span class="status-badge ${stClass(a.status)}">${a.status}</span></td>
+            <td class="mono" style="font-size:0.72rem">${timeAgo(a.timestamp)}</td>`;
+          tbody.appendChild(tr);
+        });
+        // Platform breakdown
+        const plats = {};
+        d.alerts.forEach(a => { plats[a.platform] = (plats[a.platform]||0) + 1; });
+        const sorted = Object.entries(plats).sort((a,b) => b[1]-a[1]).slice(0,6);
+        const maxVal = sorted[0]?.[1] || 1;
+        const pb = document.getElementById('platformBreakdown');
+        pb.innerHTML = sorted.map(([name, count]) => `
+          <div class="platform-row">
+            <span class="pl-name">${name}</span>
+            <div class="pl-bar-wrap"><div class="pl-bar" style="width:${count/maxVal*100}%"></div></div>
+            <span class="pl-count">${count}</span>
+          </div>`).join('');
+      } catch(e) {
+        tbody.innerHTML = `<tr class="loading-row"><td colspan="7">⚠️ Could not connect to API at ${API}. Start the Flask backend first.</td></tr>`;
+      }
+    }
+
+    async function loadAll() {
+      document.getElementById('lastUpdated').textContent = 'Refreshing...';
+      await Promise.all([loadStats(), loadAlerts()]);
+      const now = new Date();
+      document.getElementById('lastUpdated').textContent = `Updated ${now.toLocaleTimeString()}`;
+    }
+
+    loadAll();
+    setInterval(loadAll, 30000); // auto-refresh every 30s
+  </script>
+</body>
+</html>

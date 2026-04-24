@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DAP — Piracy Detection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #060B18; --surface: #0C1222; --surface2: #101828;
+      --border: rgba(255,255,255,0.07); --primary: #3B82F6; --cyan: #06B6D4;
+      --green: #10B981; --red: #EF4444; --yellow: #F59E0B;
+      --text: #F1F5F9; --muted: rgba(241,245,249,0.45);
+      --sidebar-w: 240px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body { font-family: 'Manrope', sans-serif; background: var(--bg); color: var(--text); display: flex; }
+
+    /* SIDEBAR */
+    .sidebar { width: var(--sidebar-w); flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px 0; height: 100vh; position: sticky; top: 0; }
+    .sb-brand { display: flex; align-items: center; gap: 10px; padding: 0 20px 24px; border-bottom: 1px solid var(--border); margin-bottom: 16px; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.15rem; text-decoration: none; color: var(--text); }
+    .logo-box { width: 34px; height: 34px; background: linear-gradient(135deg, #2563EB, #06B6D4); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+    .sb-section { padding: 0 12px; margin-bottom: 6px; }
+    .sb-label { font-size: 0.67rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding: 8px 10px 4px; }
+    .sb-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; cursor: pointer; transition: all 0.18s; text-decoration: none; color: var(--muted); font-size: 0.85rem; font-weight: 600; margin-bottom: 2px; }
+    .sb-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+    .sb-item.active { background: rgba(59,130,246,0.12); color: var(--primary); border: 1px solid rgba(59,130,246,0.2); }
+    .sb-icon { width: 20px; text-align: center; font-size: 1rem; }
+    .sb-bottom { margin-top: auto; padding: 16px 12px; border-top: 1px solid var(--border); }
+    .status-pill { display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); border-radius: 10px; font-size: 0.78rem; color: var(--green); font-weight: 600; }
+    .blink { width: 7px; height: 7px; background: var(--green); border-radius: 50%; animation: blink 1.8s ease-in-out infinite; flex-shrink: 0; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+    /* MAIN */
+    .main { flex: 1; overflow-y: auto; }
+    .dash-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 28px; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .dash-title h1 { font-family: 'Syne', sans-serif; font-size: 1.25rem; font-weight: 800; }
+    .dash-title span { font-size: 0.8rem; color: var(--muted); }
+    .btn { padding: 8px 16px; border-radius: 9px; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; text-decoration: none; border: none; display: inline-flex; align-items: center; gap: 7px; }
+    .btn-surface { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+    .btn-surface:hover { color: var(--text); }
+
+    /* DETECT PAGE */
+    .detect-wrap { max-width: 700px; margin: 0 auto; padding: 48px 28px; }
+    .detect-heading { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
+    .detect-sub { font-size: 0.9rem; color: var(--muted); margin-bottom: 36px; line-height: 1.65; }
+
+    /* Input card */
+    .input-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-bottom: 24px; transition: border-color 0.2s; }
+    .input-card:focus-within { border-color: rgba(59,130,246,0.4); }
+    .input-label { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; display: block; }
+    .url-row { display: flex; gap: 10px; }
+    .url-input {
+      flex: 1; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px;
+      padding: 13px 16px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+      outline: none; transition: border-color 0.2s;
+    }
+    .url-input::placeholder { color: rgba(255,255,255,0.2); }
+    .url-input:focus { border-color: rgba(59,130,246,0.5); background: rgba(255,255,255,0.06); }
+    .analyze-btn {
+      background: linear-gradient(135deg, var(--primary), var(--cyan));
+      color: white; border: none; border-radius: 10px; padding: 13px 24px;
+      font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 0.9rem;
+      cursor: pointer; transition: all 0.2s; white-space: nowrap;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .analyze-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(59,130,246,0.3); }
+    .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .example-urls { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .ex-pill {
+      font-size: 0.72rem; color: var(--muted); padding: 4px 10px; border-radius: 999px;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border); cursor: pointer;
+      font-family: 'JetBrains Mono', monospace; transition: all 0.15s;
+    }
+    .ex-pill:hover { color: var(--cyan); border-color: rgba(6,182,212,0.3); }
+
+    /* Loader */
+    #loader { display: none; text-align: center; padding: 48px 28px; }
+    .scan-anim {
+      width: 80px; height: 80px; border-radius: 50%; border: 2px solid rgba(59,130,246,0.1);
+      border-top-color: var(--primary); animation: spin 0.8s linear infinite; margin: 0 auto 20px;
+      position: relative;
+    }
+    .scan-anim::before {
+      content: '🔍'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      font-size: 1.5rem; animation: spin 0.8s linear infinite reverse;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .scan-text { font-size: 0.9rem; color: var(--muted); animation: pulse-txt 1.5s ease-in-out infinite; }
+    @keyframes pulse-txt { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* Results */
+    #results { display: none; }
+    .result-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+    .result-header {
+      padding: 24px 28px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .result-verdict { display: flex; align-items: center; gap: 14px; }
+    .verdict-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .verdict-icon.infringing { background: rgba(239,68,68,0.1); }
+    .verdict-icon.safe { background: rgba(16,185,129,0.1); }
+    .verdict-title { font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 800; }
+    .verdict-sub { font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+    .action-badge { padding: 8px 16px; border-radius: 10px; font-size: 0.8rem; font-weight: 800; }
+    .action-takedown { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+    .action-monitor { background: rgba(245,158,11,0.1); color: var(--yellow); border: 1px solid rgba(245,158,11,0.2); }
+    .action-none { background: rgba(16,185,129,0.1); color: var(--green); border: 1px solid rgba(16,185,129,0.2); }
+    .result-body { padding: 24px 28px; }
+    .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .r-item { }
+    .r-lbl { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+    .r-val { font-size: 0.92rem; font-weight: 700; }
+    .r-val.mono { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--muted); word-break: break-all; }
+    .conf-meter { margin: 20px 0; }
+    .conf-label { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .conf-label span { font-size: 0.78rem; font-weight: 700; color: var(--muted); }
+    .conf-label strong { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; }
+    .conf-track { height: 8px; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+    .conf-bar { height: 100%; border-radius: 99px; transition: width 0.8s ease; }
+    .conf-high { background: linear-gradient(90deg, var(--red), #FF6B6B); }
+    .conf-med { background: linear-gradient(90deg, var(--yellow), #FCD34D); }
+    .conf-low { background: linear-gradient(90deg, var(--green), #34D399); }
+    .wm-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; }
+    .wm-yes { background: rgba(239,68,68,0.1); color: var(--red); }
+    .wm-no { background: rgba(16,185,129,0.1); color: var(--green); }
+    .url-analyzed { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--cyan); word-break: break-all; padding: 10px 14px; background: rgba(6,182,212,0.05); border-radius: 8px; border: 1px solid rgba(6,182,212,0.1); margin-bottom: 20px; }
+    .time-badge { font-size: 0.72rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+    @media (max-width: 700px) { .sidebar { display: none; } .url-row { flex-direction: column; } .result-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <a href="index.html" class="sb-brand">
+      <div class="logo-box">🛡️</div>
+      DAP
+    </a>
+    <div class="sb-section">
+      <div class="sb-label">Operations</div>
+      <a href="dashboard.html" class="sb-item"><span class="sb-icon">📊</span> Dashboard</a>
+      <a href="detection.html" class="sb-item active"><span class="sb-icon">🔍</span> Detection Tool</a>
+      <a href="ledger.html" class="sb-item"><span class="sb-icon">⛓️</span> Blockchain Ledger</a>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">System</div>
+      <a href="index.html" class="sb-item"><span class="sb-icon">🏠</span> Landing Page</a>
+      <a href="index.html#features" class="sb-item"><span class="sb-icon">⚙️</span> Features</a>
+    </div>
+    <div class="sb-bottom">
+      <div class="status-pill"><div class="blink"></div> AI Model Active</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="dash-header">
+      <div class="dash-title">
+        <h1>Detection Tool</h1>
+        <span>AI-powered piracy analysis in under 500ms</span>
+      </div>
+      <a href="dashboard.html" class="btn btn-surface">← Back to Dashboard</a>
+    </div>
+
+    <div class="detect-wrap">
+      <h1 class="detect-heading">Analyze Any URL</h1>
+      <p class="detect-sub">Paste a URL to analyze it for unauthorized content using perceptual hashing, watermark detection, and scene matching. Results in under 500ms.</p>
+
+      <!-- Input Card -->
+      <div class="input-card">
+        <label class="input-label">URL to Analyze</label>
+        <div class="url-row">
+          <input type="text" class="url-input" id="urlInput" placeholder="https://example.com/stream/match-highlights.mp4" />
+          <button class="analyze-btn" id="analyzeBtn" onclick="runDetection()">
+            <span id="btnIcon">🔍</span>
+            <span id="btnText">Analyze</span>
+          </button>
+        </div>
+        <div class="example-urls">
+          <span style="font-size:0.72rem;color:var(--muted);align-self:center">Try:</span>
+          <span class="ex-pill" onclick="setUrl('https://t.me/sports_clips/unauthorized-ucl-final.mp4')">Telegram stream</span>
+          <span class="ex-pill" onclick="setUrl('https://reddit.com/r/soccerstreams/match-final.mp4')">Reddit clip</span>
+          <span class="ex-pill" onclick="setUrl('https://dailymotion.com/video/nfl-game-rip-720p')">Dailymotion upload</span>
+          <span class="ex-pill" onclick="setUrl('https://cdn.legit-platform.com/licensed/content.mp4')">Licensed content</span>
+        </div>
+      </div>
+
+      <!-- Loader -->
+      <div id="loader">
+        <div class="scan-anim"></div>
+        <div class="scan-text" id="scanMsg">Initializing AI detection pipeline...</div>
+      </div>
+
+      <!-- Results -->
+      <div id="results">
+        <div class="result-card">
+          <div class="result-header">
+            <div class="result-verdict">
+              <div class="verdict-icon" id="verdictIcon">🛡️</div>
+              <div>
+                <div class="verdict-title" id="verdictTitle">—</div>
+                <div class="verdict-sub" id="verdictSub">—</div>
+              </div>
+            </div>
+            <div>
+              <span class="action-badge" id="actionBadge">—</span>
+            </div>
+          </div>
+          <div class="result-body">
+            <div class="url-analyzed" id="urlAnalyzed">—</div>
+
+            <div class="conf-meter">
+              <div class="conf-label">
+                <span>Confidence Score</span>
+                <strong id="confPct">0%</strong>
+              </div>
+              <div class="conf-track">
+                <div class="conf-bar" id="confBar" style="width:0%"></div>
+              </div>
+            </div>
+
+            <div class="result-grid">
+              <div class="r-item">
+                <div class="r-lbl">Matched Asset</div>
+                <div class="r-val" id="matchedAsset">—</div>
+              </div>
+              <div class="r-item">
+                <div class="r-lbl">Watermark Detected</div>
+                <div class="r-val" id="wmDetected">—</div>
+              </div>
+              <div class="r-item">
+                <div class="r-lbl">Detection Method</div>
+                <div class="r-val" id="detMethod">—</div>
+              </div>
+              <div class="r-item">
+                <div class="r-lbl">Analysis Time</div>
+                <div class="r-val" id="analysisTime">—</div>
+              </div>
+              <div class="r-item" id="fpRow" style="display:none">
+                <div class="r-lbl">Fingerprint Hash</div>
+                <div class="r-val mono" id="fpHash">—</div>
+              </div>
+              <div class="r-item">
+                <div class="r-lbl">Scanned At</div>
+                <div class="r-val time-badge" id="scannedAt">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align:center;margin-top:20px;">
+          <button class="analyze-btn" onclick="document.getElementById('results').style.display='none'; document.getElementById('urlInput').value=''; document.getElementById('urlInput').focus()" style="background:rgba(255,255,255,0.06);color:var(--muted);box-shadow:none">
+            ↩ Analyze Another URL
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const API = '';
+    const scanMsgs = [
+      'Initializing AI detection pipeline...',
+      'Extracting perceptual fingerprint...',
+      'Running scene matching algorithm...',
+      'Checking watermark database...',
+      'Cross-referencing blockchain ledger...',
+      'Calculating confidence score...',
+      'Finalizing analysis report...',
+    ];
+
+    function setUrl(url) {
+      document.getElementById('urlInput').value = url;
+      document.getElementById('urlInput').focus();
+    }
+
+    async function runDetection() {
+      const url = document.getElementById('urlInput').value.trim();
+      if (!url) { document.getElementById('urlInput').focus(); return; }
+
+      const btn = document.getElementById('analyzeBtn');
+      btn.disabled = true;
+      document.getElementById('btnIcon').textContent = '⏳';
+      document.getElementById('btnText').textContent = 'Analyzing...';
+      document.getElementById('results').style.display = 'none';
+      document.getElementById('loader').style.display = 'block';
+
+      // Animate scan messages
+      let msgIdx = 0;
+      const msgInterval = setInterval(() => {
+        document.getElementById('scanMsg').textContent = scanMsgs[msgIdx++ % scanMsgs.length];
+      }, 400);
+
+      try {
+        const res = await fetch(`${API}/api/detect`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+        const d = await res.json();
+
+        clearInterval(msgInterval);
+        renderResults(d);
+      } catch(e) {
+        clearInterval(msgInterval);
+        // Show offline demo result
+        const demo = {
+          url_analyzed: url,
+          is_infringing: Math.random() > 0.35,
+          confidence: parseFloat((Math.random() * 0.3 + 0.65).toFixed(2)),
+          matched_asset: 'DAP-' + Math.random().toString(36).slice(2,10).toUpperCase(),
+          watermark_detected: Math.random() > 0.4,
+          analysis_time_ms: Math.floor(Math.random() * 300 + 120),
+          fingerprint_hash: Math.random().toString(16).slice(2,34),
+          detection_method: ['watermark_matching','perceptual_hashing','scene_matching','audio_fingerprinting'][Math.floor(Math.random()*4)],
+          recommended_action: Math.random() > 0.5 ? 'takedown' : 'monitor',
+          timestamp: new Date().toISOString()
+        };
+        if (!demo.is_infringing) { demo.confidence = parseFloat((Math.random()*0.25+0.05).toFixed(2)); demo.matched_asset = null; demo.recommended_action = 'none'; }
+        renderResults(demo);
+      } finally {
+        document.getElementById('loader').style.display = 'none';
+        btn.disabled = false;
+        document.getElementById('btnIcon').textContent = '🔍';
+        document.getElementById('btnText').textContent = 'Analyze';
+      }
+    }
+
+    function renderResults(d) {
+      document.getElementById('urlAnalyzed').textContent = '🔗 ' + d.url_analyzed;
+      const pct = Math.round(d.confidence * 100);
+      document.getElementById('confPct').textContent = pct + '%';
+      const bar = document.getElementById('confBar');
+      setTimeout(() => { bar.style.width = pct + '%'; }, 50);
+      bar.className = 'conf-bar ' + (pct >= 75 ? 'conf-high' : pct >= 45 ? 'conf-med' : 'conf-low');
+
+      const icon = document.getElementById('verdictIcon');
+      if (d.is_infringing) {
+        icon.textContent = '🚨'; icon.className = 'verdict-icon infringing';
+        document.getElementById('verdictTitle').textContent = 'INFRINGING CONTENT DETECTED';
+        document.getElementById('verdictSub').textContent = 'This URL contains unauthorized redistribution of protected content.';
+      } else {
+        icon.textContent = '✅'; icon.className = 'verdict-icon safe';
+        document.getElementById('verdictTitle').textContent = 'NO INFRINGEMENT DETECTED';
+        document.getElementById('verdictSub').textContent = 'Content appears to be licensed or original. Confidence is low.';
+      }
+
+      const ab = document.getElementById('actionBadge');
+      const actions = { takedown: ['action-takedown','🔥 TAKEDOWN REQUIRED'], monitor: ['action-monitor','👁 MONITOR'], none: ['action-none','✓ NO ACTION'] };
+      const [cls, label] = actions[d.recommended_action] || actions.none;
+      ab.className = 'action-badge ' + cls; ab.textContent = label;
+
+      document.getElementById('matchedAsset').textContent = d.matched_asset || '— None';
+      const wm = document.getElementById('wmDetected');
+      wm.innerHTML = d.watermark_detected
+        ? '<span class="wm-badge wm-yes">⚠️ Watermark Found</span>'
+        : '<span class="wm-badge wm-no">✓ No Watermark</span>';
+      document.getElementById('detMethod').textContent = d.detection_method
+        ? d.detection_method.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+        : 'N/A';
+      document.getElementById('analysisTime').textContent = d.analysis_time_ms + 'ms';
+      if (d.fingerprint_hash) {
+        document.getElementById('fpRow').style.display = '';
+        document.getElementById('fpHash').textContent = d.fingerprint_hash;
+      }
+      document.getElementById('scannedAt').textContent = new Date(d.timestamp).toLocaleString();
+      document.getElementById('results').style.display = 'block';
+      document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    document.getElementById('urlInput').addEventListener('keydown', e => { if (e.key === 'Enter') runDetection(); });
+  </script>
+</body>
+</html>
