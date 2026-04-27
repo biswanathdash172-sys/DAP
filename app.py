@@ -69,7 +69,20 @@ def workflow():
 @app.route('/api/features')
 def features():
     return jsonify({"core":[{"icon":"fa-shield-halved","title":"Real-Time Monitoring","desc":"Continuously scan 50+ streaming platforms and social networks for unauthorized sports content redistribution.","stat":"50+","stat_label":"Platforms"},{"icon":"fa-fingerprint","title":"Invisible Watermarking","desc":"Embed perceptual watermarks into every frame without quality loss. Each distributor receives a unique identifier.","stat":"3,421","stat_label":"Watermarks"},{"icon":"fa-brain","title":"AI Content Detection","desc":"Machine learning models trained on perceptual hashing, scene analysis, and audio fingerprinting.","stat":"91.4%","stat_label":"Accuracy"},{"icon":"fa-cube","title":"Blockchain Provenance","desc":"Immutable on-chain records of ownership, licensing, and distribution rights for every registered asset.","stat":"1,247","stat_label":"On-chain"},{"icon":"fa-bolt","title":"Instant Takedown","desc":"Automated takedown requests generated and dispatched within 230ms of infringement confirmation.","stat":"230ms","stat_label":"Response"},{"icon":"fa-scale-balanced","title":"Compliance Engine","desc":"Built-in compliance with DMCA, EU Digital Single Market directive, and regional frameworks.","stat":"96.8%","stat_label":"Score"}],"advanced":[{"icon":"fa-network-wired","title":"CDN Integration","desc":"REST API connectors for seamless integration with major content delivery networks."},{"icon":"fa-lock","title":"DRM Encryption","desc":"Multi-DRM support including Widevine, FairPlay, and PlayReady."},{"icon":"fa-chart-line","title":"Analytics Suite","desc":"Content performance, geographic distribution, and piracy trend forecasting."},{"icon":"fa-users-gear","title":"Role-Based Access","desc":"Granular permissions for content managers, legal teams, and administrators."},{"icon":"fa-globe","title":"Geo-Fencing","desc":"Territory-based access controls with VPN detection."},{"icon":"fa-code-branch","title":"API-First Design","desc":"RESTful APIs for custom integrations and white-label deployment."}]})
+def init_db():
+    conn = sqlite3.connect('dap.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS detections
+                 (id TEXT, url TEXT, is_infringing INTEGER, 
+                  confidence REAL, reason TEXT, matched_asset TEXT,
+                  recommended_action TEXT, timestamp TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS ledger
+                 (id TEXT, asset_name TEXT, hash TEXT, 
+                  block_number INTEGER, timestamp TEXT)''')
+    conn.commit()
+    conn.close()
 
+init_db()  # call this before app.run()
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
