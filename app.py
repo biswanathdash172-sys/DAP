@@ -232,32 +232,25 @@ Respond ONLY with a valid JSON object. No explanation. No markdown. No extra tex
         response = model.generate_content(prompt)
         result_text = response.text.strip()
 
-        # Clean JSON if Gemini wraps in markdown
         result_text = result_text.replace('```json', '').replace('```', '').strip()
-
         result = json.loads(result_text)
 
-        # Calculate response time
         elapsed_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
 
-        # Save detection to DB
         try:
             conn = sqlite3.connect('dap.db')
             c = conn.cursor()
             c.execute("INSERT INTO detections VALUES (?,?,?,?,?,?,?,?)", (
-                str(uuid.uuid4()),
-                url,
+                str(uuid.uuid4()), url,
                 1 if result.get('is_infringing') else 0,
-                result.get('confidence', 0),
-                result.get('reason', ''),
-                result.get('matched_asset', ''),
-                result.get('recommended_action', 'none'),
+                result.get('confidence', 0), result.get('reason', ''),
+                result.get('matched_asset', ''), result.get('recommended_action', 'none'),
                 datetime.utcnow().isoformat() + 'Z'
             ))
             conn.commit()
             conn.close()
         except Exception:
-            pass  # Don't fail the response if DB write fails
+            pass
 
         return jsonify({
             "url_analyzed": url,
@@ -277,12 +270,11 @@ Respond ONLY with a valid JSON object. No explanation. No markdown. No extra tex
         })
 
     except json.JSONDecodeError:
-        # Gemini returned non-JSON — fallback
         return jsonify({
             "url_analyzed": url,
             "is_infringing": False,
             "confidence": 0.0,
-            "reason": "AI analysis failed to parse. Please try again.",
+            "reason": "AI response could not be parsed. Please retry.",
             "matched_asset": None,
             "watermark_detected": False,
             "analysis_time_ms": 0,
@@ -293,22 +285,20 @@ Respond ONLY with a valid JSON object. No explanation. No markdown. No extra tex
         }), 200
 
     except Exception as e:
-      
-    print(f"[GEMINI ERROR] {type(e).__name__}: {e}")  # shows in Render logs
-    return jsonify({
-        "url_analyzed": url,
-        "is_infringing": False,
-        "confidence": 0.0,
-        "reason": f"AI analysis error: {str(e)}",
-        "matched_asset": None,
-        "watermark_detected": False,
-        "analysis_time_ms": 0,
-        "fingerprint_hash": None,
-        "detection_method": None,
-        "recommended_action": "none",
-        "timestamp": datetime.utcnow().isoformat() + 'Z'
-    }), 200
-
+        print(f"[GEMINI ERROR] {type(e).__name__}: {e}")
+        return jsonify({
+            "url_analyzed": url,
+            "is_infringing": False,
+            "confidence": 0.0,
+            "reason": f"AI analysis error: {str(e)}",
+            "matched_asset": None,
+            "watermark_detected": False,
+            "analysis_time_ms": 0,
+            "fingerprint_hash": None,
+            "detection_method": None,
+            "recommended_action": "none",
+            "timestamp": datetime.utcnow().isoformat() + 'Z'
+        }), 200
 @app.route('/api/workflow')
 def workflow():
     return jsonify({"phases": [
