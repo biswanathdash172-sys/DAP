@@ -1,6 +1,7 @@
 """
 Digital Asset Protection — Flask Backend
 """
+import sqlite3        
 import os
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
