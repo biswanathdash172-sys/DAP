@@ -1,6 +1,7 @@
 """
 Digital Asset Protection — Flask Backend
 """
+import google.generativeai as genai  # ✅ this is fine
 import sqlite3
 import os
 import json
