@@ -13,11 +13,11 @@ from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-import google.generativeai as genai
+
+
+
 
 load_dotenv()
-
-# Configure Gemini
 genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
 model = genai.GenerativeModel('gemini-2.0-flash')
 
@@ -293,7 +293,21 @@ Respond ONLY with a valid JSON object. No explanation. No markdown. No extra tex
         }), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+      
+    print(f"[GEMINI ERROR] {type(e).__name__}: {e}")  # shows in Render logs
+    return jsonify({
+        "url_analyzed": url,
+        "is_infringing": False,
+        "confidence": 0.0,
+        "reason": f"AI analysis error: {str(e)}",
+        "matched_asset": None,
+        "watermark_detected": False,
+        "analysis_time_ms": 0,
+        "fingerprint_hash": None,
+        "detection_method": None,
+        "recommended_action": "none",
+        "timestamp": datetime.utcnow().isoformat() + 'Z'
+    }), 200
 
 @app.route('/api/workflow')
 def workflow():
